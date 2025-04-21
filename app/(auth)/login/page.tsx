@@ -27,6 +27,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
+  const [debugInfo, setDebugInfo] = useState<string | null>(null)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -38,11 +39,15 @@ export default function LoginPage() {
 
   const handleRecaptchaChange = (token: string | null) => {
     setRecaptchaToken(token)
+    if (token) {
+      setError(null) // Limpar erros quando o reCAPTCHA for preenchido
+    }
   }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
     setError(null)
+    setDebugInfo(null)
 
     try {
       // Verificar reCAPTCHA
@@ -63,9 +68,20 @@ export default function LoginPage() {
         }),
       })
 
-      const data = await response.json()
+      const responseText = await response.text()
+      let data
+
+      try {
+        data = JSON.parse(responseText)
+      } catch (e) {
+        console.error("Failed to parse response as JSON:", responseText)
+        throw new Error("Server returned an invalid response")
+      }
 
       if (!response.ok) {
+        if (process.env.NODE_ENV === "development") {
+          setDebugInfo(JSON.stringify(data, null, 2))
+        }
         throw new Error(data.message || "Invalid username or password")
       }
 
@@ -128,10 +144,20 @@ export default function LoginPage() {
               />
 
               <div className="flex justify-center">
-                <ReCAPTCHA sitekey="6Lcg4x8rAAAAAGftG8e4C6gMZhaHXjjF3N85i-a5" onChange={handleRecaptchaChange} />
+                <ReCAPTCHA sitekey="6LdX8x4rAAAAAN1rku7gve2EvBungLQ2T_QhbFst" onChange={handleRecaptchaChange} />
               </div>
 
-              {error && <div className="text-red-400 text-sm font-medium text-center">{error}</div>}
+              {error && (
+                <div className="text-red-400 text-sm font-medium text-center p-2 bg-red-400/10 rounded-md border border-red-400/20">
+                  {error}
+                </div>
+              )}
+
+              {debugInfo && process.env.NODE_ENV === "development" && (
+                <div className="text-xs font-mono bg-gray-800 p-2 rounded-md overflow-auto max-h-32 text-white/70">
+                  <pre>{debugInfo}</pre>
+                </div>
+              )}
 
               <Button
                 type="submit"

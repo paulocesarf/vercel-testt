@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
-import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs"
 
 // Limite de tentativas de login por IP
 const loginAttempts = new Map<string, { count: number; timestamp: number }>()
@@ -9,7 +8,6 @@ const LOCKOUT_TIME = 15 * 60 * 1000 // 15 minutos em milissegundos
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req, res })
 
   // Verificar se é uma requisição de login ou registro
   if (

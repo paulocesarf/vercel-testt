@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
+import { createClient } from "@supabase/supabase-js"
 import crypto from "crypto"
 
 export async function POST(request: NextRequest) {
@@ -26,7 +26,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar cliente Supabase
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ADMIN_KEY || ""
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        persistSession: false,
+      },
+    })
 
     // Verificar se o username já existe
     const { data: existingUsers, error: fetchError } = await supabase
@@ -74,6 +81,27 @@ export async function POST(request: NextRequest) {
 
       if (profileError) {
         return NextResponse.json({ success: false, message: "Error creating user profile" }, { status: 500 })
+      }
+
+      // Definir o cookie de sessão se houver uma sessão
+      if (data.session) {
+        const cookieStore = cookies()
+
+        cookieStore.set("sb-access-token", data.session.access_token, {
+          path: "/",
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          maxAge: data.session.expires_in,
+          sameSite: "lax",
+        })
+
+        cookieStore.set("sb-refresh-token", data.session.refresh_token, {
+          path: "/",
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          maxAge: 60 * 60 * 24 * 30, // 30 dias
+          sameSite: "lax",
+        })
       }
     }
 

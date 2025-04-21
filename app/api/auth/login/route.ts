@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
+import { createClient } from "@supabase/supabase-js"
 import crypto from "crypto"
 
 export async function POST(request: NextRequest) {
@@ -26,7 +26,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar cliente Supabase
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ADMIN_KEY || ""
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        persistSession: false,
+      },
+    })
 
     // Gerar um email único baseado no username, mas não previsível
     const hashedUsername = crypto.createHash("sha256").update(username).digest("hex").substring(0, 8)
@@ -41,6 +48,28 @@ export async function POST(request: NextRequest) {
     if (error) {
       // Não revelar informações específicas sobre o erro
       return NextResponse.json({ success: false, message: "Invalid credentials" }, { status: 401 })
+    }
+
+    // Definir o cookie de sessão
+    const cookieStore = cookies()
+    const session = data.session
+
+    if (session) {
+      cookieStore.set("sb-access-token", session.access_token, {
+        path: "/",
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: session.expires_in,
+        sameSite: "lax",
+      })
+
+      cookieStore.set("sb-refresh-token", session.refresh_token, {
+        path: "/",
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 24 * 30, // 30 dias
+        sameSite: "lax",
+      })
     }
 
     return NextResponse.json({

@@ -19,7 +19,7 @@ export async function checkUserExists(username: string) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // Verificar se o username existe na tabela profiles
-    const { data, error } = await supabase.from("profiles").select("usuarios").eq("usuarios", username).limit(1)
+    const { data, error } = await supabase.from("users").select("usuarios").eq("usuarios", username).limit(1)
 
     if (error) {
       console.error("Error checking if user exists:", error)

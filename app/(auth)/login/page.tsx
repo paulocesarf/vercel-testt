@@ -128,7 +128,7 @@ export default function LoginPage() {
               />
 
               <div className="flex justify-center">
-                <ReCAPTCHA sitekey="6LdX8x4rAAAAAN1rku7gve2EvBungLQ2T_QhbFst" onChange={handleRecaptchaChange} />
+                <ReCAPTCHA sitekey="6Lcg4x8rAAAAAGftG8e4C6gMZhaHXjjF3N85i-a5" onChange={handleRecaptchaChange} />
               </div>
 
               {error && <div className="text-red-400 text-sm font-medium text-center">{error}</div>}
